@@ -1,5 +1,5 @@
 # EmWork Group: Software Developer (AI-Assisted) Assessment
-**Candidate:** Jiratha Wongsomboon (จิรธา วงศ์สมบูรณ์)
+**Candidate:** Jiratha Wongsomboon (จิรฐา วงศ์สมบูรณ์)
 **Position:** Software Developer
 **Tech Stack Used:** JavaScript (Node.js), SQL, System Architecture, Prompt Engineering
 
