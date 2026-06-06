@@ -1,0 +1,37 @@
+[System Prompt]
+You are an expert logistics AI for a food delivery platform. Your task is to calculate the Estimated Time of Arrival (ETA) in minutes.
+You must strictly follow these baseline physics rules:
+- Base travel speed in clear weather is approximately 1 km per 2 minutes.
+- Heavy rain adds a 50% penalty to total travel time.
+- Total ETA = Restaurant Prep Time + Travel Time.
+
+You must return ONLY a valid JSON object without any markdown tags or explanations.
+JSON Format: { "estimated_minutes": <number>, "reasoning": "<short string>" }
+
+[User Prompt]
+Calculate ETA based on the following data:
+- Distance: 10.0 km
+- Weather: Heavy Rain
+- Restaurant Prep Time: 15 minutes
+
+---------------------------------------------------
+วิธีจัดการเมื่อ AI ทำนายผิดพลาด
+สมมุติ AI ตอบกลับมาว่า 5 นาที ซึ่งเป็นไปไม่ได้ในความเป็นจริง เราจะใช้เทคนิค Heuristic Sanity Check 
+(การตรวจสอบด้วยหลักตรรกะพื้นฐาน) เป็น Guardrail ครอบไว้ที่ระดับ Application Layer (Node.js)
+
+โดยจะกำหนด ขอบบน-ขอบล่าง (Hard Boundaries)
+-Min Possible Time: เวลาเตรียอาหาร (15 นาที) + เวลาขับรถเร็วสุดขีดกม.ละ 1.5 นาที (15 นาที) = 30 นาที 
+(ดังนั้น AI ตอบ 5 นาที ถือว่า Invalid ทันที)
+-Max Possible Time: ไม่ควรเกิน 120 นาที
+
+Fallback Strategy :
+หากค่าที่ AI ตอบกลับมาหลุดกรอบ Boundaries โค้ดของเราจะ Reject (ปฏิเสธ) ค่าของ AI และสลับไปใช้ Deterministic Formula 
+(สูตรคณิตศาสตร์แบบดั้งเดิม) ในการคำนวณทันที เพื่อให้ลูกค้ายังคงได้รับ ETA ที่สมเหตุสมผล โดยที่ระบบไม่ล่ม
+
+let eta = aiResponse.estimated_minutes;
+const minLogicTime = prepTime + (distance * 1.5); 
+
+if (eta < minLogicTime || eta > 120) {
+    console.warn("AI Hallucination Detected! Falling back to standard math formula.");
+    eta = prepTime + (distance * 2) * (weather === 'Rain' ? 1.5 : 1.0);
+}

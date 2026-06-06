@@ -1,0 +1,40 @@
+[ Rider App (Supply) ] & [ Customer App (Demand) ]
+         |                         |
+         v                         v
+[ 1. API Gateway (Node.js / Express) ]
+         |
+         v
+[ 2. Event Stream (Apache Kafka / Redis PubSub) ] 
+   (ส่งข้อมูลพิกัด Rider และคำสั่งซื้อแบบ Real-time เข้าคิว)
+         |
+         v
+[ 3. Dynamic Pricing Microservice ]
+   ├── A. Demand/Supply Aggregator (นับสัดส่วนในพื้นที่ H3 Hexagon)
+   └── B. AI Pricing Model (ใช้ ML วิเคราะห์แนวโน้มราคาที่เหมาะสม)
+         |
+         v
+[ 4. Hard-Coded Guardrails Layer ] <-- (ด่านตรวจความปลอดภัยก่อนปล่อยราคา)
+         |
+         v
+[ 5. Redis (In-Memory Cache) ]
+   (นำราคาที่ผ่านการอนุมัติไปอัปเดตแคชรายพื้นที่ เพื่อให้โหลดเร็ว)
+         |
+         v
+[ Customer App ] <-- (แสดงผลค่าส่งแบบ Surge Pricing ให้ลูกค้าเห็น)
+
+-Hard-coded Guardrails
+1.Absolute Max Price Cap (เพดานราคาสูงสุดทางกฎหมาย):
+ตั้งตัวแปรค่าคงที่ (Constant) เป็นเพดานเหล็กที่ AI ไม่มีสิทธิ์ก้าวล่วง เช่น 
+MAX_DELIVERY_FEE = 150 THB หาก AI ส่งค่า 500 มา โค้ดจะปัดลงให้เหลือ 150 ทันที 
+Math.min(ai_price, MAX_DELIVERY_FEE)
+
+2.Maximum Surge Multiplier (จำกัดตัวคูณ):
+ค่าส่งไม่ควรพุ่งพรวดพราด กำหนดให้ AI อัปราคาตั้งต้นขึ้นได้สูงสุดไม่เกิน 2.0x หรือ 2.5x 
+ของราคาปกติในช่วงเวลาเดียวกัน
+
+3.Circuit Breaker (ระบบตัดไฟอัตโนมัติ):
+หากระบบตรวจพบว่า AI Model พยายามเสนอราคาที่เกินเพดาน (Hit the Cap) 
+ติดต่อกันเกิน 100 ครั้งใน 1 นาที ระบบจะประเมินว่า AI อาจทำงานผิดปกติ 
+(Model Drift หรือ Data Poisoning) ฟังก์ชัน Circuit Breaker จะสับสวิตช์ 
+"ปิดการใช้งาน AI ทันที" และเปลี่ยนระบบไปใช้ Static Pricing Matrix (ราคาคงที่ตามตาราง Excel)
+จนกว่าทีม Engineer จะเข้ามาตรวจสอบ
